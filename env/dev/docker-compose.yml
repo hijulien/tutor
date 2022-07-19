@@ -1,0 +1,126 @@
+version: "3.7"
+
+x-openedx-service:
+  &openedx-service
+  image: openedx-dev
+  build:
+    context: ../build/openedx/
+    target: development
+    args:
+      APP_USER_ID: "1000"
+  stdin_open: true
+  tty: true
+  volumes:
+    # Settings & config
+    - ../apps/openedx/settings/lms:/openedx/edx-platform/lms/envs/tutor:ro
+    - ../apps/openedx/settings/cms:/openedx/edx-platform/cms/envs/tutor:ro
+    - ../apps/openedx/config:/openedx/config:ro
+    # theme files
+    - ../build/openedx/themes:/openedx/themes
+    # editable requirements
+    - ../build/openedx/requirements:/openedx/requirements
+
+services:
+  lms-permissions:
+    command: ["1000", "/openedx/data", "/openedx/media"]
+
+  cms-permissions:
+    command: ["1000", "/openedx/data", "/openedx/media"]
+
+  lms:
+    <<: *openedx-service
+    command: ./manage.py lms runserver 0.0.0.0:8000
+    environment:
+        DJANGO_SETTINGS_MODULE: lms.envs.tutor.development
+    ports:
+        - "8000:8000"
+    networks:
+      default:
+        aliases:
+          - "local.overhang.io"
+
+  cms:
+    <<: *openedx-service
+    command: ./manage.py cms runserver 0.0.0.0:8000
+    environment:
+        DJANGO_SETTINGS_MODULE: lms.envs.tutor.development
+    ports:
+        - "8001:8000"
+
+  lms-worker:
+    <<: *openedx-service
+
+  cms-worker:
+    <<: *openedx-service
+
+  # Additional service for watching theme changes
+  watchthemes:
+    <<: *openedx-service
+    command: openedx-assets watch-themes --env dev
+    restart: unless-stopped
+
+  # MFE apps
+
+  account:
+      image: account
+      build:
+          context: ../plugins/mfe/build/mfe/
+          target: account-dev
+      ports:
+          - "127.0.0.1:1997:1997"
+      volumes:
+          - ../plugins/mfe/apps/mfe/webpack.dev.config.js:/openedx/app/webpack.dev.config.js:ro
+      env_file:
+          - ../plugins/mfe/build/mfe/env/production
+          - ../plugins/mfe/build/mfe/env/development
+      environment:
+          - "PORT=1997"
+          - "COACHING_ENABLED="
+          
+          - "ENABLE_DEMOGRAPHICS_COLLECTION="
+          
+
+  gradebook:
+      image: gradebook
+      build:
+          context: ../plugins/mfe/build/mfe/
+          target: gradebook-dev
+      ports:
+          - "127.0.0.1:1994:1994"
+      volumes:
+          - ../plugins/mfe/apps/mfe/webpack.dev.config.js:/openedx/app/webpack.dev.config.js:ro
+      env_file:
+          - ../plugins/mfe/build/mfe/env/production
+          - ../plugins/mfe/build/mfe/env/development
+      environment:
+          - "PORT=1994"
+
+  learning:
+      image: learning
+      build:
+          context: ../plugins/mfe/build/mfe/
+          target: learning-dev
+      ports:
+          - "127.0.0.1:2000:2000"
+      volumes:
+          - ../plugins/mfe/apps/mfe/webpack.dev.config.js:/openedx/app/webpack.dev.config.js:ro
+      env_file:
+          - ../plugins/mfe/build/mfe/env/production
+          - ../plugins/mfe/build/mfe/env/development
+      environment:
+          - "PORT=2000"
+
+  profile:
+      image: profile
+      build:
+          context: ../plugins/mfe/build/mfe/
+          target: profile-dev
+      ports:
+          - "127.0.0.1:1995:1995"
+      volumes:
+          - ../plugins/mfe/apps/mfe/webpack.dev.config.js:/openedx/app/webpack.dev.config.js:ro
+      env_file:
+          - ../plugins/mfe/build/mfe/env/production
+          - ../plugins/mfe/build/mfe/env/development
+      environment:
+          - "PORT=1995"

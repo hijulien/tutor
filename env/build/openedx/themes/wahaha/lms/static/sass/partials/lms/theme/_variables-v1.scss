@@ -1,0 +1,10 @@
+@import 'custom_variables/_colors.scss';
+@import 'custom_variables/_fonts.scss';
+@import 'custom_variables/_images.scss';
+
+// Import remaining defaults directly from platform
+@import 'lms/static/sass/partials/lms/theme/_variables-v1.scss';
+
+.home header{
+    background-image: url('https://smartrack.wahaha.com.cn/assets/images/loop_bg-64b62fef3807cb63fcfd5f896c8425d6.png');
+}
